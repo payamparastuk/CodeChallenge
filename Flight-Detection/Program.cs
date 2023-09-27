@@ -82,19 +82,25 @@ namespace Flight_Detection.Presentation
 
             DateTime GetStartDate(string startDateInput)
             {
-                while (string.IsNullOrEmpty(startDateInput))
+                while (true)
                 {
-                    Console.WriteLine("Please Enter start date (in yyyy-mm-dd format):");
-                    startDateInput = Console.ReadLine();
-                }
+                    if (string.IsNullOrEmpty(startDateInput))
+                    {
+                        Console.WriteLine("Please enter start date (in yyyy-mm-dd format):");
+                        startDateInput = Console.ReadLine();
+                    }
 
-                return DateTime.SpecifyKind(DateTime.Parse(startDateInput), DateTimeKind.Utc);
+                    if (DateTime.TryParse(startDateInput, out var result))
+                        return DateTime.SpecifyKind(result, DateTimeKind.Utc);
+
+                    Console.WriteLine("Invalid date format");
+                    startDateInput = null;
+                }
             }
 
             DateTime GetEndDate(string endDateInput)
             {
-                DateTime? endDate = null;
-                while (endDate == null)
+                while (true)
                 {
                     if (string.IsNullOrEmpty(endDateInput))
                     {
@@ -102,29 +108,42 @@ namespace Flight_Detection.Presentation
                         endDateInput = Console.ReadLine();
                     }
 
-                    if (!string.IsNullOrEmpty(endDateInput))
+                    if (!DateTime.TryParse(endDateInput, out var result))
                     {
-                        endDate = DateTime.SpecifyKind(DateTime.Parse(endDateInput), DateTimeKind.Utc);
-
-                        if (endDate <= input.StartDate)
-                        {
-                            Console.WriteLine("End date should not be less than or equal to start date!");
-                        }
+                        Console.WriteLine("Invalid date format");
+                        endDateInput = null;
+                        continue;
                     }
-                }
 
-                return endDate.Value;
+                    var endDate = DateTime.SpecifyKind(result, DateTimeKind.Utc);
+
+                    if (endDate <= input.StartDate)
+                    {
+                        Console.WriteLine("End date should not be less than or equal to start date!");
+                        endDateInput = null;
+                        continue;
+                    }
+
+                    return endDate;
+                }
             }
 
             int GetAgencyId(string agencyIdInput)
             {
-                while (string.IsNullOrEmpty(agencyIdInput))
+                while (true)
                 {
-                    Console.WriteLine("Please Enter agency id:");
-                    agencyIdInput = Console.ReadLine();
-                }
+                    if (string.IsNullOrEmpty(agencyIdInput))
+                    {
+                        Console.WriteLine("Please Enter agency ID:");
+                        agencyIdInput = Console.ReadLine();
+                    }
 
-                return int.Parse(agencyIdInput);
+                    if (int.TryParse(agencyIdInput, out var result))
+                        return result;
+
+                    Console.WriteLine("Invalid agency ID");
+                    agencyIdInput = null;
+                }
             }
 
             #endregion
