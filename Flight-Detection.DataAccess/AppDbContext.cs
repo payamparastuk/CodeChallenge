@@ -9,7 +9,7 @@ namespace Flight_Detection.DataAccess
         {
             //edit connection string to connect your server
             optionsBuilder.UseNpgsql(
-                "server=localhost;port=5432;database=code-challenge;user id=postgres;password=123456;");
+                "server=localhost;port=5432;database=code_challenge;user id=postgres;password=123456;");
         }
 
         public DbSet<Route> Routes { get; set; }
