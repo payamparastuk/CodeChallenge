@@ -29,7 +29,9 @@ namespace Flight_Detection.Presentation
 
                 Console.WriteLine("Please wait...");
 
-                var flightDetectionResults = _flightDetectionService.GetRoutesByAgencyIdAndDuration(inputParameters);
+                var flightDetectionResults = _flightDetectionService
+                    .GetRoutesByAgencyIdAndDuration(inputParameters)
+                    .ToList();
 
                 if (flightDetectionResults.Count == 0)
                 {

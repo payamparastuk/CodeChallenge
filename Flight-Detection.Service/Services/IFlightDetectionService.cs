@@ -9,6 +9,6 @@ namespace Flight_Detection.Service.Services
 {
     public interface IFlightDetectionService
     {
-        List<FlightDetectionResult> GetRoutesByAgencyIdAndDuration(InputParameters inputParameters);
+        IEnumerable<FlightDetectionResult> GetRoutesByAgencyIdAndDuration(InputParameters inputParameters);
     }
 }

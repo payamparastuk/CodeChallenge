@@ -4,6 +4,7 @@ using System.Linq;
 using Flight_Detection.DataAccess;
 using Flight_Detection.Entity.Enums;
 using Flight_Detection.Entity.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Flight_Detection.Service.Services
 {
@@ -16,35 +17,30 @@ namespace Flight_Detection.Service.Services
             _context = context;
         }
 
-        public List<FlightDetectionResult> GetRoutesByAgencyIdAndDuration(InputParameters inputParameters)
+        public IEnumerable<FlightDetectionResult> GetRoutesByAgencyIdAndDuration(InputParameters inputParameters)
         {
-            var routes = _context.Routes
+            var routesQuery = _context.Routes
                 .Join(_context.Subscriptions,
                     route => new { route.DestinationCityId, route.OriginCityId },
                     subscription => new { subscription.DestinationCityId, subscription.OriginCityId },
                     (route, subscription) => new { Route = route, Subscription = subscription })
                 .Where(sr => sr.Subscription.AgencyId == inputParameters.AgencyId &&
-                             (sr.Route.DepartureDate.Date >= inputParameters.StartDate.Date &&
-                              sr.Route.DepartureDate.Date <= inputParameters.EndDate.Date))
-                .Select(subscription => subscription.Route).ToList();
-
-            if (routes.Count == 0)
-            {
-                return new List<FlightDetectionResult>();
-            }
-
-            var routeIds = routes.Select(route => route.RouteId).ToList();
+                             (sr.Route.DepartureDate.Date >= inputParameters.StartDate.Date.AddDays(-7) &&
+                              sr.Route.DepartureDate.Date <= inputParameters.EndDate.Date.AddDays(7)))
+                .Select(subscription => subscription.Route.RouteId);
 
             var filteredFlights = _context.Flights
-                .Where(flight => routeIds.Contains(flight.RouteId))
+                .Where(flight => routesQuery.Any(routeId => routeId == flight.RouteId))
+                .Include(flight => flight.Route)
                 .OrderBy(flight => flight.DepartureTime)
                 .ToList();
 
-            return GetFlightDetectionResults(filteredFlights, routes);
+            return GetFlightDetectionResults(filteredFlights, inputParameters);
         }
 
-        private static List<FlightDetectionResult> GetFlightDetectionResults(IEnumerable<Flight> flights,
-            IReadOnlyCollection<Route> routes)
+        private static IEnumerable<FlightDetectionResult> GetFlightDetectionResults(
+            IReadOnlyCollection<Flight> flights,
+            InputParameters inputParameters)
         {
             var beforeTimeSpan = new TimeSpan(6, 23, 30, 0, 0);
             var afterTimeSpan = new TimeSpan(7, 0, 30, 0, 0);
@@ -52,46 +48,55 @@ namespace Flight_Detection.Service.Services
             var groupedFlight = flights.GroupBy(flight => new
             {
                 flight.AirlineId,
+                flight.Route.OriginCityId,
+                flight.Route.DestinationCityId,
                 flight.DepartureTime.Date
-            }).ToDictionary(d => (d.Key.AirlineId, d.Key.Date), d => d.ToList());
+            }).ToDictionary(
+                d => (d.Key.AirlineId, d.Key.OriginCityId, d.Key.DestinationCityId, d.Key.Date),
+                d => d.ToList());
 
-            var flightDetectionResults = flights.Select(flight =>
+            foreach (var flight in flights)
             {
-                groupedFlight.TryGetValue((flight.AirlineId, flight.DepartureTime.AddDays(-7).Date),
+                if (flight.DepartureTime < inputParameters.StartDate || flight.DepartureTime > inputParameters.EndDate)
+                    continue;
+
+                var originCityId = flight.Route.OriginCityId;
+                var destinationCityId = flight.Route.DestinationCityId;
+
+                groupedFlight.TryGetValue(
+                    (flight.AirlineId, originCityId, destinationCityId, flight.DepartureTime.AddDays(-7).Date),
                     out var sevenDaysBeforeOfTheCurrentFlight);
-                groupedFlight.TryGetValue((flight.AirlineId, flight.DepartureTime.AddDays(7).Date),
+                groupedFlight.TryGetValue(
+                    (flight.AirlineId, originCityId, destinationCityId, flight.DepartureTime.AddDays(7).Date),
                     out var sevenDaysAfterOfTheCurrentFlight);
 
                 if (sevenDaysBeforeOfTheCurrentFlight is null || !sevenDaysBeforeOfTheCurrentFlight.Any(p =>
                         p.DepartureTime <= flight.DepartureTime.Subtract(beforeTimeSpan) &&
                         p.DepartureTime >= flight.DepartureTime.Subtract(afterTimeSpan)))
                 {
-                    return CreateFlightDetectionResultObject(routes, flight, FlightStatusEnum.New);
+                    yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.New);
                 }
 
                 if (sevenDaysAfterOfTheCurrentFlight is null || !sevenDaysAfterOfTheCurrentFlight.Any(p =>
                         p.DepartureTime <= flight.DepartureTime.Add(afterTimeSpan) &&
                         p.DepartureTime >= flight.DepartureTime.Add(beforeTimeSpan)))
                 {
-                    return CreateFlightDetectionResultObject(routes, flight, FlightStatusEnum.Discontinued);
+                    yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.Discontinued);
                 }
 
-                return CreateFlightDetectionResultObject(routes, flight, FlightStatusEnum.NotChanged);
-            });
-
-            return flightDetectionResults.OrderBy(f => f.FlightId).ToList();
+                yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.NotChanged);
+            }
         }
 
-        private static FlightDetectionResult CreateFlightDetectionResultObject(
-            IReadOnlyCollection<Route> routes, Flight flight, FlightStatusEnum status)
+        private static FlightDetectionResult CreateFlightDetectionResultObject(Flight flight, FlightStatusEnum status)
         {
             return new FlightDetectionResult
             {
                 ArrivalTime = flight.ArrivalTime,
                 AirlineId = flight.AirlineId,
-                OriginCityId = routes.FirstOrDefault(p => p.RouteId == flight.RouteId)?.OriginCityId,
+                OriginCityId = flight.Route.OriginCityId,
                 DepartureDate = flight.DepartureTime,
-                DestinationCityId = routes.FirstOrDefault(p => p.RouteId == flight.RouteId)?.DestinationCityId,
+                DestinationCityId = flight.Route.DestinationCityId,
                 FlightId = flight.FlightId,
                 Status = status.ToString()
             };
