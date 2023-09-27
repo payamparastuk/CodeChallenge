@@ -66,22 +66,26 @@ namespace Flight_Detection.Service.Services
                 groupedFlight.TryGetValue(
                     (flight.AirlineId, originCityId, destinationCityId, flight.DepartureTime.AddDays(-7).Date),
                     out var sevenDaysBeforeOfTheCurrentFlight);
-                groupedFlight.TryGetValue(
-                    (flight.AirlineId, originCityId, destinationCityId, flight.DepartureTime.AddDays(7).Date),
-                    out var sevenDaysAfterOfTheCurrentFlight);
+
 
                 if (sevenDaysBeforeOfTheCurrentFlight is null || !sevenDaysBeforeOfTheCurrentFlight.Any(p =>
                         p.DepartureTime <= flight.DepartureTime.Subtract(beforeTimeSpan) &&
                         p.DepartureTime >= flight.DepartureTime.Subtract(afterTimeSpan)))
                 {
                     yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.New);
+                    continue;
                 }
+
+                groupedFlight.TryGetValue(
+                    (flight.AirlineId, originCityId, destinationCityId, flight.DepartureTime.AddDays(7).Date),
+                    out var sevenDaysAfterOfTheCurrentFlight);
 
                 if (sevenDaysAfterOfTheCurrentFlight is null || !sevenDaysAfterOfTheCurrentFlight.Any(p =>
                         p.DepartureTime <= flight.DepartureTime.Add(afterTimeSpan) &&
                         p.DepartureTime >= flight.DepartureTime.Add(beforeTimeSpan)))
                 {
                     yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.Discontinued);
+                    continue;
                 }
 
                 yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.NotChanged);
