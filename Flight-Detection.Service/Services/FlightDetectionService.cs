@@ -4,6 +4,7 @@ using System.Linq;
 using Flight_Detection.DataAccess;
 using Flight_Detection.Entity.Enums;
 using Flight_Detection.Entity.Models;
+using Flight_Detection.Entity.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flight_Detection.Service.Services

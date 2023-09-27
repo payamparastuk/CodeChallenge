@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Flight_Detection.Entity.Models;
+using Flight_Detection.Entity.ViewModels;
 
 namespace Flight_Detection.Service.Services
 {

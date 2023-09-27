@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using CsvHelper;
 using Flight_Detection.DataAccess;
-using Flight_Detection.Entity.Models;
+using Flight_Detection.Entity.ViewModels;
 using Flight_Detection.Service.Services;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -26,14 +26,15 @@ namespace Flight_Detection.DataAccess
                 .HasKey(c => c.RouteId);
             modelBuilder.Entity<Route>()
                 .HasIndex(route => new { route.OriginCityId, route.DestinationCityId });
-
             modelBuilder.Entity<Route>()
                 .HasMany(p => p.Flights)
                 .WithOne(b => b.Route)
                 .HasForeignKey(p => p.RouteId);
 
-            modelBuilder.Entity<Flight>().HasKey(c => c.FlightId);
-            modelBuilder.Entity<Flight>().HasIndex(c => c.RouteId);
+            modelBuilder.Entity<Flight>()
+                .HasKey(c => c.FlightId);
+            modelBuilder.Entity<Flight>()
+                .HasIndex(c => c.RouteId);
         }
     }
 }
