@@ -33,15 +33,19 @@ namespace Flight_Detection.Presentation
                     .GetRoutesByAgencyIdAndDuration(inputParameters)
                     .ToList();
 
+                stopwatch.Stop();
+                DisplayExecutionMetrics(stopwatch);
+
                 if (flightDetectionResults.Count == 0)
                 {
                     Console.WriteLine("No flight is detected!");
                     return;
                 }
+                
+                CreateResultFile(flightDetectionResults);
 
-                stopwatch.Stop();
-
-                CreateResultFile(flightDetectionResults, stopwatch.ElapsedMilliseconds);
+                Console.WriteLine("Please press a key to continue ... !");
+                Console.ReadKey();
             }
             catch (Exception e)
             {
@@ -50,25 +54,22 @@ namespace Flight_Detection.Presentation
             }
         }
 
-        private static void CreateResultFile(
-            List<FlightDetectionResult> lstFlightDetectionResults, long executionMetric)
+        private static void CreateResultFile(List<FlightDetectionResult> flightDetectionResults)
         {
             var directory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
             string resultFile = Path.Combine(directory, "results.csv");
 
-            using (var writer = new StreamWriter(resultFile))
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            {
-                csv.WriteRecords(lstFlightDetectionResults);
-            }
+            using var writer = new StreamWriter(resultFile);
+            using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);            
+            csv.WriteRecords(flightDetectionResults);            
 
-            Console.WriteLine("The file results.csv with {0} records has been created on your desktop!",
-                lstFlightDetectionResults.Count);
-            Console.WriteLine("The execution metrics is {0} ms!", executionMetric);
+            Console.WriteLine($"The file results.csv with {flightDetectionResults.Count} records has been created on your desktop!");
+        }
 
-            Console.WriteLine("Please press a key to continue ... !");
-            Console.ReadKey();
+        private static void DisplayExecutionMetrics(Stopwatch executionMetric)
+        {
+            Console.WriteLine($"The execution metrics is {executionMetric.ElapsedMilliseconds} ms!");
         }
 
         private static InputParameters GetDetectionParams(string[] args)
@@ -154,7 +155,7 @@ namespace Flight_Detection.Presentation
         private static void RegisterServices()
         {
             var serviceProvider = new ServiceCollection()
-                .AddTransient<IFlightDetectionService, FlightDetectionService>()
+                .AddScoped<IFlightDetectionService, FlightDetectionService>()
                 .AddDbContext<AppDbContext>()
                 .BuildServiceProvider();
 
