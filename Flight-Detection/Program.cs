@@ -155,7 +155,7 @@ namespace Flight_Detection.Presentation
         private static void RegisterServices()
         {
             var serviceProvider = new ServiceCollection()
-                .AddScoped<IFlightDetectionService, FlightDetectionService>()
+                .AddTransient<IFlightDetectionService, FlightDetectionService>()
                 .AddDbContext<AppDbContext>()
                 .BuildServiceProvider();
 

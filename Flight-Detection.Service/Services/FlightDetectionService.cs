@@ -68,13 +68,13 @@ namespace Flight_Detection.Service.Services
                     (flight.AirlineId, originCityId, destinationCityId, flight.DepartureTime.AddDays(-7).Date),
                     out var sevenDaysBeforeOfTheCurrentFlight);
 
-
+                bool isNewOrDiscontinue = false;
                 if (sevenDaysBeforeOfTheCurrentFlight is null || !sevenDaysBeforeOfTheCurrentFlight.Any(p =>
                         p.DepartureTime <= flight.DepartureTime.Subtract(beforeTimeSpan) &&
                         p.DepartureTime >= flight.DepartureTime.Subtract(afterTimeSpan)))
                 {
                     yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.New);
-                    continue;
+                    isNewOrDiscontinue = true;
                 }
 
                 groupedFlight.TryGetValue(
@@ -86,10 +86,11 @@ namespace Flight_Detection.Service.Services
                         p.DepartureTime >= flight.DepartureTime.Add(beforeTimeSpan)))
                 {
                     yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.Discontinued);
-                    continue;
+                    isNewOrDiscontinue = true;
                 }
 
-                yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.NotChanged);
+                if (!isNewOrDiscontinue)
+                    yield return CreateFlightDetectionResultObject(flight, FlightStatusEnum.NotChanged);
             }
         }
 
